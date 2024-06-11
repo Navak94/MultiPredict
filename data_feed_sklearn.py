@@ -9,17 +9,28 @@ import datetime
 import os
 import getpass
 import csv
+from datetime import datetime, timedelta
 
+training_data_days = 120
+companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "RTX" ,"HPQ"]
 
-companies = ["AMD", "NVDA", "INTC", "AAPL", "GOOGL", "RTX" ,"HPQ"]
+# Get the current date and time
+now = datetime.now()
 
+# Format the date as a string in "YYYY-MM-DD" format
+formatted_date = now.strftime("%Y-%m-%d")
+current_date = datetime.strptime(formatted_date, "%Y-%m-%d")
+next_day_date = current_date + timedelta(days=1)
+past_date_beginning_data=current_date - timedelta(days=training_data_days)
+future_date_beginning_data=current_date + timedelta(days=30)
+next_year = current_date + timedelta(days=365)
 #Start and end of real data points
-start_time_past="2024-01-01"
-end_time_past="2024-04-30"
+start_time_past=past_date_beginning_data
+end_time_past=formatted_date
 
 #Try to predict in this time window
-start_time_future="2024-05-01"
-end_time_future="2024-06-01"
+start_time_future=next_day_date
+end_time_future=future_date_beginning_data
 
 for Company in companies:
 
@@ -40,7 +51,7 @@ for Company in companies:
 
         try:
             # Fetch data from yfinance for the specified company
-            data = yf.download(Company, start=start_time_past, end="2024-12-31")
+            data = yf.download(Company, start=start_time_past, end=next_year)
 
             # Write data to CSV file
             for index, row in data.iterrows():
@@ -68,7 +79,7 @@ for Company in companies:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     #Model Training
-    poly_features = PolynomialFeatures(degree=2)
+    poly_features = PolynomialFeatures(degree=3)
     X_train_poly = poly_features.fit_transform(X_train)
     model = LinearRegression()
     model.fit(X_train_poly, y_train)
