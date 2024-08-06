@@ -11,9 +11,12 @@ import getpass
 import csv
 from datetime import datetime, timedelta
 
-training_data_days_list = [15,30,60,90,120,150,200,300,330,365]
-companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "RTX" ,"HPQ","LMT","BA","MSFT","TSLA","AMZN","GD","T","VZ"]
+#training_data_days_list = [15,30,90,120,150,200]
+training_data_days_list = [120]
+companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "RTX" ,"HPQ","LMT","BA","MSFT","TSLA","AMZN","GD","T","VZ","NOC", "GE"]
 
+total_invest=0
+total_return=0
 
 for training_data_days in training_data_days_list:
     # Get the current date and time
@@ -76,7 +79,8 @@ for training_data_days in training_data_days_list:
         #Split Data
         X = df.index.map(lambda x: x.toordinal()).values.reshape(-1, 1)  # Feature (end_date)
         y = df['Open'].values   # Target variable
-
+        today_val = float(y[len(y)-1])
+        total_invest = total_invest + today_val
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         #Model Training
@@ -98,7 +102,22 @@ for training_data_days in training_data_days_list:
         future_dates_numeric = np.array([date.toordinal() for date in future_dates]).reshape(-1, 1)
         future_dates_poly = poly_features.transform(future_dates_numeric)
         future_predictions = model.predict(future_dates_poly)
-
+        
+        #getting trend
+        predicted_val = float(future_predictions[len(future_predictions)-1])
+        predicted_val_first = float(future_predictions[0])
+        total_return = total_return + predicted_val
+        trend_val=predicted_val-predicted_val_first
+        term=""
+        if training_data_days == 30:
+            term= "short term"
+        if training_data_days == 120:
+            term = "long term"
+        if trend_val > 1:
+            print(f'{Company} {term} upward Trend!')
+        if trend_val < 1:
+            print(f'{Company} {term} downward Trend!')
+        
         #Generate past dates within the specified time period
         past_dates = pd.date_range(start=start_date_past, end=end_date_past, freq='D')
 
@@ -130,4 +149,8 @@ for training_data_days in training_data_days_list:
         plot_filename = f'{plot_folder_save}{Company}_{training_data_days}_training_days_data.png'
         plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
 
-        #plt.show()
+percent_return = round(100*(total_return/total_invest)-100,2)
+total_invest = round(total_invest,2)
+total_return = round(total_return,2)
+print("if you bought everything it'd cost $" , total_invest , " and the value 30 days from now would be $" , total_return , " which is a " ,percent_return , "% return")
+
