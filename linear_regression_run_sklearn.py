@@ -10,11 +10,17 @@ import os
 import getpass
 import csv
 from datetime import datetime, timedelta
+import json
 
-#training_data_days_list = [15,30,90,120,150,200]
+def load_config_json(path="companies.json"):
+    with open(path, 'r') as file:
+        config = json.load(file)
+    return config['companies']
+
+#training_data_days_list = [15,30,90,120,150,200,300]
 training_data_days_list = [120]
-companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "RTX" ,"HPQ","LMT","BA","MSFT","TSLA","AMZN","GD","T","VZ","NOC", "GE"]
-
+#companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "HPQ","MSFT","TSLA","AMZN","T","VZ","BA","NOC", "GE", "RTX" ,"GD","LMT","CVS","WMT","UNH","META","JNJ"]
+companies = load_config_json()
 total_invest=0
 total_return=0
 
@@ -80,7 +86,7 @@ for training_data_days in training_data_days_list:
         X = df.index.map(lambda x: x.toordinal()).values.reshape(-1, 1)  # Feature (end_date)
         y = df['Open'].values   # Target variable
         today_val = float(y[len(y)-1])
-        total_invest = total_invest + today_val
+        #total_invest = total_invest + today_val
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         #Model Training
@@ -106,7 +112,7 @@ for training_data_days in training_data_days_list:
         #getting trend
         predicted_val = float(future_predictions[len(future_predictions)-1])
         predicted_val_first = float(future_predictions[0])
-        total_return = total_return + predicted_val
+        #total_return = total_return + predicted_val
         trend_val=predicted_val-predicted_val_first
         term=""
         if training_data_days == 30:
@@ -114,9 +120,14 @@ for training_data_days in training_data_days_list:
         if training_data_days == 120:
             term = "long term"
         if trend_val > 1:
-            print(f'{Company} {term} upward Trend!')
+            #print(f'{Company} {term} upward Trend!')
+            if trend_val > 1.7:
+                print(f'{Company} {term} HIGH upward Trend!')
+                total_invest = total_invest + today_val
+                total_return = total_return + predicted_val
         if trend_val < 1:
-            print(f'{Company} {term} downward Trend!')
+            #print(f'{Company} {term} downward Trend!')
+            pass
         
         #Generate past dates within the specified time period
         past_dates = pd.date_range(start=start_date_past, end=end_date_past, freq='D')

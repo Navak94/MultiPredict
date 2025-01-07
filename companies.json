@@ -1,0 +1,20 @@
+{
+"companies": [
+    "AAPL", "MSFT", "AMZN", "GOOGL", "GOOG", "NVDA", "TSLA", 
+    "META", "JNJ", "UNH", "V", "PG", "XOM", "MA", "HD", "CVX",
+     "LLY", "MRK", "PEP", "KO", "ABBV", "COST", "AVGO", "MCD", 
+     "WMT", "TMO", "NEE", "DHR", "NKE", "ORCL", "ASML", "TXN", 
+     "PM", "UPS", "QCOM", "AMD", "AMT", "HON", "IBM", "INTC", 
+     "GE", "RTX", "MDT", "SBUX", "GS", "MS", "BLK", "NFLX", "BA",
+      "CAT", "SPGI", "NOW", "ISRG", "AXP", "EL", "GILD", "ZTS",
+       "SCHW", "BKNG", "LOW", "T", "VZ", "AMGN", "MO", "FIS", "ICE",
+        "C", "CB", "NSC", "CSX", "MMC", "DE", "DUK", "SO", "PGR", "BDX",
+         "CME", "PNC", "AON", "APD", "SHW", "CL", "ADI", "ITW", "WM", "ETN",
+          "F", "EMR", "LMT", "HUM", "KMB", "SYK", "MCO", "DG", "PSA", "TGT",
+           "D", "PLD", "ECL", "ADM", "MPC", "VRTX", "MNST", "CNC", "RSG",
+            "REGN", "CI", "ROST", "WBA", "KHC", "STZ", "MKC", "SWK", "AVB",
+             "WY", "SRE", "HSY", "TDG", "DTE", "BAX", "ZBH", "EXC", "AKAM", "ALLE",
+              "FDS", "AAP", "WST", "BXP", "XYL", "FTNT", "NEM", "CTVA", "DOV", "CDW",
+               "OKE", "HIG", "PFG", "FITB", "CMS"
+]
+}
