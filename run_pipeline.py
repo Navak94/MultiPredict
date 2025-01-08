@@ -16,7 +16,7 @@ def run_pipeline():
         # Step 2: Run the PyTorch RNN Model
         print("Running tensorflow_nn Model...")
         subprocess.run(["python", tensorflow_nn_script], check=True)
-        print("PyTorch RNN Model completed successfully.\n")
+        print("tensorflow_nn completed successfully.\n")
 
         # Step 2: Run the PyTorch RNN Model
         print("Running PyTorch RNN Model...")

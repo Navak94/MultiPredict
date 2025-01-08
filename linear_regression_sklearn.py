@@ -12,6 +12,8 @@ import csv
 from datetime import datetime, timedelta
 import json
 
+os.makedirs('stock_predictions', exist_ok=True)
+
 def load_config_json(path="companies.json"):
     with open(path, 'r') as file:
         config = json.load(file)

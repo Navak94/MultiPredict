@@ -92,8 +92,7 @@ for Company in companies:
         plt.xlabel('Date')
         plt.ylabel('Close Price (USD)')
         plt.legend()
-        os.makedirs('stock_predictions_tf', exist_ok=True)
-        plt.savefig(f'stock_predictions/{Company}/{Company}_tensorflow_ltsm_nn_prediction.png', dpi=300)
+        plt.savefig(f'stock_predictions/{Company}/{Company}_tensorflow_ltsm_torch_nn_prediction.png', dpi=300)
         plt.close()
 
         print(f"Completed LSTM prediction for {Company}")
