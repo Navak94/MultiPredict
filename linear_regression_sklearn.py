@@ -45,7 +45,7 @@ for training_data_days in training_data_days_list:
     for Company in companies:
 
         #Define directory path
-        directory = f"C:\\Users\\{getpass.getuser()}\\Desktop\\pyStockData\\"
+        directory = "stock_predictions/"
 
         #Create directory if it doesn't exist
         if not os.path.exists(directory):
@@ -76,7 +76,7 @@ for training_data_days in training_data_days_list:
 
 
         #Read the CSV file
-        df = pd.read_csv(f'C:\\Users\\{getpass.getuser()}\\Desktop\\pyStockData\\{Company}_data.csv', usecols=['Date', 'Open'])
+        df = pd.read_csv(f'stock_predictions\\{Company}_data.csv', usecols=['Date', 'Open'])
 
         #Prepare Data
         df['Date'] = pd.to_datetime(df['Date'])
@@ -157,7 +157,7 @@ for training_data_days in training_data_days_list:
         if not os.path.exists(plot_folder_save):
             os.makedirs(plot_folder_save)
             
-        plot_filename = f'{plot_folder_save}{Company}_{training_data_days}_training_days_data.png'
+        plot_filename = f'{plot_folder_save}{Company}_{training_data_days}_training_days_data_Linear_Regression.png'
         plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
 
 percent_return = round(100*(total_return/total_invest)-100,2)

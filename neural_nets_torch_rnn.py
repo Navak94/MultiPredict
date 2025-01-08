@@ -117,6 +117,11 @@ for Company in companies:
     print(f"Tomorrow's Predicted Value for {Company}: {future_predictions[0]:.2f}")
     print(f"Predicted Value for {Company} 30 days from tomorrow: {future_predictions[-1]:.2f}")
 
+    # Create the directory for the company if it doesn't exist
+    company_directory = f"stock_predictions/{Company}"
+    os.makedirs(company_directory, exist_ok=True)
+
+    # Create and save the plot in the corresponding company folder
     plt.figure(figsize=(12, 6))
     plt.plot(data.index[-120:], last_120_days, label="Last 120 Days")
     plt.plot(future_dates, future_predictions, label="RNN Predictions", color='orange')
@@ -124,6 +129,8 @@ for Company in companies:
     plt.xlabel('Date')
     plt.ylabel('Close Price (USD)')
     plt.legend()
-    os.makedirs('stock_predictions', exist_ok=True)
-    plt.savefig(f'stock_predictions/{Company}_stock_prediction.png', dpi=300)
+
+    # Save plot in the company-specific folder
+    plot_filename = f"stock_predictions/{Company}/{Company}_stock_prediction_Torch_RNN.png"
+    plt.savefig(plot_filename, dpi=300)
     plt.close()
