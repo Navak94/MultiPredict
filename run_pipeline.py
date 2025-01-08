@@ -3,6 +3,7 @@ import subprocess
 def run_pipeline():
     # Define the paths to your script files
     linear_regression_script = "linear_regression_sklearn.py"
+    tensorflow_nn_script = "neural_nets_tensorflow.py"
     pytorch_rnn_script = "neural_nets_torch_rnn.py"
     
 
@@ -11,6 +12,11 @@ def run_pipeline():
         print("Running Linear Regression Model...")
         subprocess.run(["python", linear_regression_script], check=True)
         print("Linear Regression Model completed successfully.\n")
+
+        # Step 2: Run the PyTorch RNN Model
+        print("Running tensorflow_nn Model...")
+        subprocess.run(["python", tensorflow_nn_script], check=True)
+        print("PyTorch RNN Model completed successfully.\n")
 
         # Step 2: Run the PyTorch RNN Model
         print("Running PyTorch RNN Model...")

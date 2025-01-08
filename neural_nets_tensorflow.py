@@ -81,7 +81,7 @@ for Company in companies:
         future_predictions_rescaled = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
 
         # Properly rescale both past data and predictions
-        last_120_days = scaler.inverse_transform(df_normalized[-120:])
+        last_120_days = scaler.inverse_transform(df[-120:].reshape(-1, 1))
 
         # Plot results using actual data index
         plt.figure(figsize=(12, 6))
@@ -93,7 +93,7 @@ for Company in companies:
         plt.ylabel('Close Price (USD)')
         plt.legend()
         os.makedirs('stock_predictions_tf', exist_ok=True)
-        plt.savefig(f'stock_predictions/{Company}/{Company}_tensorflow_ltsm_nn_prediction.png', dpi=300)
+        plt.savefig(f'stock_predictions_tf/{Company}_lstm_prediction.png', dpi=300)
         plt.close()
 
         print(f"Completed LSTM prediction for {Company}")
