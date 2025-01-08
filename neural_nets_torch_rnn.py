@@ -41,10 +41,10 @@ def create_sequences(data, seq_length):
     return sequences
 
 # Hyperparameters
-sequence_length = 30
+sequence_length = 15
 hidden_size = 256
 epochs = 150
-learning_rate = 0.0005
+learning_rate = 0.0004
 clip_value = 1.0
 batch_size = 32
 
@@ -112,7 +112,7 @@ for Company in companies:
 
     # Properly rescale both past data and predictions
     future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1)).flatten()
-    last_120_days = scaler.inverse_transform(df[-120:])
+    last_120_days = scaler.inverse_transform(df_normalized[-120:].cpu().numpy())
 
     print(f"Tomorrow's Predicted Value for {Company}: {future_predictions[0]:.2f}")
     print(f"Predicted Value for {Company} 30 days from tomorrow: {future_predictions[-1]:.2f}")
