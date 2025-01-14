@@ -17,13 +17,13 @@ def get_article_text(url):
 def summarize_article(article_text):
     response = openai.Completion.create(
         model="gpt-3.5-turbo-instruct",
-        prompt=f"can you tell me if this is ether Fantastic, Good, Great, ,Neutral, or Bad for AAPL only respond with one word?: {article_text}",
+        prompt=f"can you tell me if this is ether Good, Neutral, or Bad for any companies only respond with Good, Bad, or Neurtral then give me the reasoning: {article_text}",
         max_tokens=500
     )
     return response['choices'][0]['text']
 
 # Example usage
-article_url = "https://finance.yahoo.com/news/apple-nvidia-microsoft-amazon-alphabet-205532443.html"
+article_url = "https://finance.yahoo.com/news/live/stock-market-today-dow-pops-higher-tech-weighs-on-nasdaq-as-treasury-yields-keep-climbing-210218602.html"
 article_text = get_article_text(article_url)
 summary = summarize_article(article_text)
 print("Summary:\n", summary)
