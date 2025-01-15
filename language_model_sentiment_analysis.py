@@ -119,7 +119,7 @@ def summarize_and_identify_companies(article_text, companies):
 def initialize_csv(companies, filename="stock_analysis.csv"):
     with open(filename, mode="w", newline="") as file:
         writer = csv.writer(file)
-        header = ["Company", "GPT Analysis", "Linear Regression", "Neural Network"]
+        header = ["Company", "GPT Analysis", "GPT Standalone", "Linear Regression", "Neural Network"]
         writer.writerow(header)
         for company in companies:
             writer.writerow([company, "", "", ""])

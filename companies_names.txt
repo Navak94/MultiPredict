@@ -1,0 +1,139 @@
+AAPL: Apple Inc.
+MSFT: Microsoft Corporation
+AMZN: Amazon.com Inc.
+GOOGL: Alphabet Inc. (Class A)
+GOOG: Alphabet Inc. (Class C)
+NVDA: NVIDIA Corporation
+TSLA: Tesla Inc.
+META: Meta Platforms Inc.
+JNJ: Johnson & Johnson
+UNH: UnitedHealth Group Incorporated
+V: Visa Inc.
+PG: Procter & Gamble Company
+XOM: Exxon Mobil Corporation
+MA: Mastercard Incorporated
+HD: The Home Depot Inc.
+CVX: Chevron Corporation
+LLY: Eli Lilly and Company
+MRK: Merck & Co., Inc.
+PEP: PepsiCo, Inc.
+KO: The Coca-Cola Company
+ABBV: AbbVie Inc.
+COST: Costco Wholesale Corporation
+AVGO: Broadcom Inc.
+MCD: McDonald's Corporation
+WMT: Walmart Inc.
+TMO: Thermo Fisher Scientific Inc.
+NEE: NextEra Energy, Inc.
+DHR: Danaher Corporation
+NKE: NIKE, Inc.
+ORCL: Oracle Corporation
+ASML: ASML Holding N.V.
+TXN: Texas Instruments Incorporated
+PM: Philip Morris International Inc.
+UPS: United Parcel Service, Inc.
+QCOM: QUALCOMM Incorporated
+AMD: Advanced Micro Devices, Inc.
+AMT: American Tower Corporation
+HON: Honeywell International Inc.
+IBM: International Business Machines Corporation
+INTC: Intel Corporation
+GE: General Electric Company
+RTX: RTX Corporation
+MDT: Medtronic plc
+SBUX: Starbucks Corporation
+GS: The Goldman Sachs Group, Inc.
+MS: Morgan Stanley
+BLK: BlackRock, Inc.
+NFLX: Netflix, Inc.
+BA: The Boeing Company
+CAT: Caterpillar Inc.
+SPGI: S&P Global Inc.
+NOW: ServiceNow, Inc.
+ISRG: Intuitive Surgical, Inc.
+AXP: American Express Company
+EL: The Estée Lauder Companies Inc.
+GILD: Gilead Sciences, Inc.
+ZTS: Zoetis Inc.
+SCHW: The Charles Schwab Corporation
+BKNG: Booking Holdings Inc.
+LOW: Lowe's Companies, Inc.
+T: AT&T Inc.
+VZ: Verizon Communications Inc.
+AMGN: Amgen Inc.
+MO: Altria Group, Inc.
+FIS: Fidelity National Information Services, Inc.
+ICE: Intercontinental Exchange, Inc.
+C: Citigroup Inc.
+CB: Chubb Limited
+NSC: Norfolk Southern Corporation
+CSX: CSX Corporation
+MMC: Marsh & McLennan Companies, Inc.
+DE: Deere & Company
+DUK: Duke Energy Corporation
+SO: The Southern Company
+PGR: The Progressive Corporation
+BDX: Becton, Dickinson and Company
+CME: CME Group Inc.
+PNC: The PNC Financial Services Group, Inc.
+AON: Aon plc
+APD: Air Products and Chemicals, Inc.
+SHW: The Sherwin-Williams Company
+CL: Colgate-Palmolive Company
+ADI: Analog Devices, Inc.
+ITW: Illinois Tool Works Inc.
+WM: Waste Management, Inc.
+ETN: Eaton Corporation plc
+F: Ford Motor Company
+EMR: Emerson Electric Co.
+LMT: Lockheed Martin Corporation
+HUM: Humana Inc.
+KMB: Kimberly-Clark Corporation
+SYK: Stryker Corporation
+MCO: Moody's Corporation
+DG: Dollar General Corporation
+PSA: Public Storage
+TGT: Target Corporation
+D: Dominion Energy, Inc.
+PLD: Prologis, Inc.
+ECL: Ecolab Inc.
+ADM: Archer-Daniels-Midland Company
+MPC: Marathon Petroleum Corporation
+VRTX: Vertex Pharmaceuticals Incorporated
+MNST: Monster Beverage Corporation
+CNC: Centene Corporation
+RSG: Republic Services, Inc.
+REGN: Regeneron Pharmaceuticals, Inc.
+CI: The Cigna Group
+ROST: Ross Stores, Inc.
+WBA: Walgreens Boots Alliance, Inc.
+KHC: The Kraft Heinz Company
+STZ: Constellation Brands, Inc.
+MKC: McCormick & Company, Incorporated
+SWK: Stanley Black & Decker, Inc.
+AVB: AvalonBay Communities, Inc.
+WY: Weyerhaeuser Company
+SRE: Sempra
+HSY: The Hershey Company
+TDG: TransDigm Group Incorporated
+DTE: DTE Energy Company
+BAX: Baxter International Inc.
+ZBH: Zimmer Biomet Holdings, Inc.
+EXC: Exelon Corporation
+AKAM: Akamai Technologies, Inc.
+ALLE: Allegion plc
+FDS: FactSet Research Systems Inc.
+AAP: Advance Auto Parts, Inc.
+WST: West Pharmaceutical Services, Inc.
+BXP: Boston Properties, Inc.
+XYL: Xylem Inc.
+FTNT: Fortinet, Inc.
+NEM: Newmont Corporation
+CTVA: Corteva, Inc.
+DOV: Dover Corporation
+CDW: CDW Corporation
+OKE: ONEOK, Inc.
+HIG: The Hartford Financial Services Group, Inc.
+PFG: Principal Financial Group, Inc.
+FITB: Fifth Third Bancorp
+CMS: CMS Energy Corporation

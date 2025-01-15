@@ -21,7 +21,6 @@ def load_config_json(path="companies.json"):
 
 #training_data_days_list = [15,30,90,120,150,200,300]
 training_data_days_list = [120]
-#companies = ["ADBE","AMD", "NVDA", "INTC", "AAPL", "GOOGL", "HPQ","MSFT","TSLA","AMZN","T","VZ","BA","NOC", "GE", "RTX" ,"GD","LMT","CVS","WMT","UNH","META","JNJ"]
 companies = load_config_json()
 total_invest=0
 total_return=0

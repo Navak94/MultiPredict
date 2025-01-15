@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import os
 import json
 import csv
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path="API_key.env")
@@ -46,7 +45,7 @@ def gpt_filter_articles(titles):
 def get_article_text(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
-    return soup.get_text()[:10000]  # Token limit for safety
+    return soup.get_text()[:4000]  # Token limit for safety
 
 # GPT summarizes the article and identifies affected companies
 def summarize_and_identify_companies(article_text, companies):
@@ -58,40 +57,44 @@ def summarize_and_identify_companies(article_text, companies):
     )
     return response['choices'][0]['text']
 
-# Initialize CSV file with companies and analysis columns
+# Initialize CSV only if it doesn't exist
 def initialize_csv(companies, filename="stock_analysis.csv"):
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        header = ["Company", "GPT Analysis", "Linear Regression", "Neural Network"]
-        writer.writerow(header)
-        for company in companies:
-            writer.writerow([company, "", "", ""])
-    print(f"CSV initialized with {len(companies)} companies.")
+    if not os.path.exists(filename):
+        with open(filename, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            header = ["Company", "GPT Analysis", "GPT Standalone", "Linear Regression", "Neural Network"]
+            writer.writerow(header)
+            for company in companies:
+                writer.writerow([company, "", "", "", ""])
+        print(f"\n  CSV initialized with 'GPT Standalone' as the third column.")
 
-# Update CSV with GPT results
-def update_csv_with_gpt_results(results, filename="stock_analysis.csv"):
+#   Update CSV without Overwriting Existing Data
+def update_csv_with_gpt_standalone(results, filename="stock_analysis.csv"):
     with open(filename, mode="r") as file:
         reader = list(csv.reader(file))
-    
-    # Modify CSV by matching companies and updating the "GPT Analysis" column
-    for company, sentiment in results.items():
-        for row in reader:
-            if row[0] == company:
-                row[1] = sentiment  # Update GPT column
+        header = reader[0]
+        column_index = header.index("GPT Standalone")  # Specifically target the third column
 
-    # Save the modified CSV
+    # Modify the specified column without overwriting other columns
+    for row in reader[1:]:
+        company = row[0]
+        # Only update if the company result is provided, else retain old data
+        if company in results:
+            row[column_index] = results[company]
+
+    # Save the modified CSV back without overwriting other columns
     with open(filename, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerows(reader)
-    print(f"CSV updated with GPT results.")
+    print(f"\n  CSV successfully updated with 'GPT Standalone' results (Preserved other columns).")
 
 # Main Execution
 if __name__ == "__main__":
-    # Load companies and initialize CSV
+    # Load companies and ensure CSV exists without overwriting existing data
     companies = load_companies("companies.json")
     initialize_csv(companies)
 
-    # Fetch article titles and filter them using GPT
+    # Fetch articles and filter them using GPT
     print("\nFetching Articles...")
     articles = fetch_articles()
     selected_articles = gpt_filter_articles(articles)
@@ -103,12 +106,13 @@ if __name__ == "__main__":
     for article in selected_articles:
         article_text = get_article_text("https://www.cnbc.com/world/?region=world")  # Replace with actual URLs if possible
         summary = summarize_and_identify_companies(article_text, companies)
+        
         # Parse GPT output for company mentions
         for company in companies:
             if company in summary:
                 sentiment = "Good" if "Good" in summary else "Bad" if "Bad" in summary else "Neutral"
                 gpt_results[company] = sentiment
 
-    # Update the CSV with GPT results
-    update_csv_with_gpt_results(gpt_results)
-    print("Pipeline completed successfully!")
+    #   Update only the "GPT Standalone" column while keeping all other columns intact
+    update_csv_with_gpt_standalone(gpt_results)
+    print("\n  Pipeline completed successfully! 'GPT Standalone' column updated while preserving other data.")
