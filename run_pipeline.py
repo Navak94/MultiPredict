@@ -6,6 +6,7 @@ def run_pipeline():
     tensorflow_nn_script = "neural_nets_tensorflow.py"
     sentiment_analysis_script = "language_model_sentiment_analysis.py"
     language_model_standalone = "language_model_standalone.py"
+    format_csv = "organize_info.py"
     try:
 
         # Step 1: Run Sentiment Analysis
@@ -28,9 +29,11 @@ def run_pipeline():
         subprocess.run(["python", tensorflow_nn_script], check=True)
         print("tensorflow_nn completed successfully.\n")
 
+        # Step 5: Run the tensorflow_nn Model
+        print("formatting the info...")
+        subprocess.run(["python", format_csv], check=True)
+        print("csv formatted\n")
 
-
-        # Step 4: Run Language Model
 
     except subprocess.CalledProcessError as e:
         print(f"Error occurred: {e}")

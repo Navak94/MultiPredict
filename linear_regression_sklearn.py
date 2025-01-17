@@ -19,6 +19,37 @@ def load_config_json(path="companies.json"):
         config = json.load(file)
     return config['companies']
 
+def append_to_csv(Company, today_val, predicted_val, trend_val, filename="stock_analysis_linear_regression.csv"):
+    # Check if the file exists and is empty (to write headers only once)
+    file_exists = os.path.isfile(filename)
+    
+    # Open the CSV in append mode
+    with open(filename, mode="a", newline="") as file:
+        writer = csv.writer(file)
+        
+        # Write headers if the file is being created for the first time
+        if not file_exists:
+            writer.writerow(["Company", "Today Value", "Predicted Value", "Trend Value"])  # Headers
+
+        # Append the data to the CSV
+        writer.writerow([Company, today_val, predicted_val, trend_val])
+
+def append_to_high_performers_csv(Company, today_val, predicted_val, trend_val, filename="stock_analysis_linear_regression_high_performers.csv"):
+    # Check if the file exists and is empty (to write headers only once)
+    file_exists = os.path.isfile(filename)
+    
+    # Open the CSV in append mode
+    with open(filename, mode="a", newline="") as file:
+        writer = csv.writer(file)
+        
+        # Write headers if the file is being created for the first time
+        if not file_exists:
+            writer.writerow(["Company", "Today Value", "Predicted Value", "Trend Value"])  # Headers
+
+        # Append the data to the CSV
+        writer.writerow([Company, today_val, predicted_val, trend_val])
+
+
 #training_data_days_list = [15,30,90,120,150,200,300]
 training_data_days_list = [120]
 companies = load_config_json()
@@ -116,19 +147,23 @@ for training_data_days in training_data_days_list:
         #total_return = total_return + predicted_val
         trend_val=predicted_val-predicted_val_first
         term=""
+        
         if training_data_days == 30:
             term= "short term"
         if training_data_days == 120:
             term = "long term"
-        if trend_val > 1:
+
+        if trend_val >= 0:
+            append_to_csv(Company, today_val, predicted_val, "Upward Trend")
             #print(f'{Company} {term} upward Trend!')
-            if trend_val > 1.7:
+            if trend_val > 1.5:
+                append_to_high_performers_csv(Company, today_val, predicted_val, "Very High Upward Trend")
                 print(f'{Company} {term} HIGH upward Trend!')
                 total_invest = total_invest + today_val
                 total_return = total_return + predicted_val
-        if trend_val < 1:
-            #print(f'{Company} {term} downward Trend!')
-            pass
+        if trend_val < 0:
+            append_to_csv(Company, today_val, predicted_val, "Downward Trend")
+            
         
         #Generate past dates within the specified time period
         past_dates = pd.date_range(start=start_date_past, end=end_date_past, freq='D')
