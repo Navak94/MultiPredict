@@ -1,118 +1,157 @@
 import openai
 import requests
-from bs4 import BeautifulSoup
-import os
+import pandas as pd
+import time
 import json
-import csv
-from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 
+# Load environment variables
+from dotenv import load_dotenv
+import os
 load_dotenv(dotenv_path="API_key.env")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Load companies from JSON file
-def load_companies(json_file="companies.json"):
-    with open(json_file, "r") as file:
-        data = json.load(file)
-        return data["companies"]
+# Load company names
 
-# Fetch article titles from Yahoo Finance and CNBC (last 24 hours)
-def fetch_articles():
-    urls = [
-        "https://finance.yahoo.com/",
-        "https://www.cnbc.com/world/?region=world"
-    ]
-    titles = []
-    for url in urls:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        for item in soup.find_all("h3"):
-            headline = item.get_text(strip=True)
-            titles.append(headline)
-    return titles
+def load_companies(file_path="companies_names.txt"):
+    companies = {}
+    with open(file_path, "r", encoding="utf-8") as file:
+        for line in file:
+            if ":" in line:
+                ticker, name = line.strip().split(": ", 1)
+                companies[ticker] = name
+    return companies
 
-# GPT filters the top articles based on importance
-def gpt_filter_articles(titles):
-    prompt = "Here are some finance-related articles. Select the 10-15 most relevant for market trends:\n" + "\n".join(titles)
+# Search Google News for stock articles
+
+def search_news(company_name):
+    search_url = f"https://www.google.com/search?q={company_name.replace(' ', '+')}+stock+news&tbm=nws"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(search_url, headers=headers)
+
+    if response.status_code != 200:
+        return []
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    articles = []
+
+    for item in soup.find_all("div", class_="BNeawe vvjwJb AP7Wnd"):
+        title = item.get_text()
+        link = item.find_parent("a")["href"]
+        if link.startswith("/url?q="):
+            link = link[7:].split("&")[0]  # Extract clean URL
+        articles.append((title, link))
+
+    return articles[:15]  # Fetch up to 15 articles per company
+
+# GPT picks the best articles
+
+def gpt_select_articles(articles, company):
+    titles = [title for title, _ in articles]
+    prompt = f"""
+    Here are recent news articles about {company}. Select the 5 most relevant for stock trends:
+    {chr(10).join(titles)}
+    Respond with just the selected titles, one per line.
+    """
     response = openai.Completion.create(
         model="gpt-3.5-turbo-instruct",
         prompt=prompt,
-        max_tokens=500
+        max_tokens=300
     )
-    selected_titles = response['choices'][0]['text'].splitlines()
-    return [title.strip() for title in selected_titles if title.strip()]
+    selected_titles = response["choices"][0]["text"].strip().split("\n")
+    return [article for article in articles if article[0] in selected_titles]
 
 # Fetch article content
-def get_article_text(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    return soup.get_text()[:4000]  # Token limit for safety
 
-# GPT summarizes the article and identifies affected companies
-def summarize_and_identify_companies(article_text, companies):
-    prompt = f"Summarize the following article and identify if any of these companies: {', '.join(companies)} are mentioned, along with whether the article is good, bad, or neutral for the companies mentioned: \n\n{article_text}"
+def get_article_text(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(response.text, "html.parser")
+        paragraphs = soup.find_all("p")
+        text = " ".join([p.get_text() for p in paragraphs])
+        return text[:5000]  # Limit to 5000 characters
+    except:
+        return ""
+
+# GPT summarizes the articles and assigns sentiment
+
+def gpt_summarize_article(article_text, company):
+    prompt = f"""
+    Summarize this article and classify its impact on {company}'s stock as Good, Neutral, or Bad.
+    {article_text}
+    """
     response = openai.Completion.create(
         model="gpt-3.5-turbo-instruct",
         prompt=prompt,
-        max_tokens=500
+        max_tokens=300
     )
-    return response['choices'][0]['text']
+    return response["choices"][0]["text"].strip()
 
-# Initialize CSV only if it doesn't exist
-def initialize_csv(companies, filename="stock_analysis.csv"):
-    if not os.path.exists(filename):
-        with open(filename, mode="w", newline="") as file:
-            writer = csv.writer(file)
-            header = ["Company", "GPT Analysis", "GPT Standalone", "Linear Regression", "Neural Network"]
-            writer.writerow(header)
-            for company in companies:
-                writer.writerow([company, "", "", "", ""])
-        print(f"\n  CSV initialized with 'GPT Standalone' as the third column.")
+# Main function to run GPT-based sentiment analysis
 
-#   Update CSV without Overwriting Existing Data
-def update_csv_with_gpt_standalone(results, filename="stock_analysis.csv"):
-    with open(filename, mode="r") as file:
-        reader = list(csv.reader(file))
-        header = reader[0]
-        column_index = header.index("GPT Standalone")  # Specifically target the third column
+def gpt_sentiment_analysis():
+    companies = load_companies("companies_names.txt")
+    results = []
+    sentiment_aggregate = {}
 
-    # Modify the specified column without overwriting other columns
-    for row in reader[1:]:
-        company = row[0]
-        # Only update if the company result is provided, else retain old data
-        if company in results:
-            row[column_index] = results[company]
+    for ticker, company in companies.items():
+        print(f"🔍 Searching news for {company} ({ticker})...")
+        articles = search_news(company)
 
-    # Save the modified CSV back without overwriting other columns
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerows(reader)
-    print(f"\n  CSV successfully updated with 'GPT Standalone' results (Preserved other columns).")
+        if not articles:
+            print(f"❌ No news found for {company}. Skipping...")
+            continue
 
-# Main Execution
-if __name__ == "__main__":
-    # Load companies and ensure CSV exists without overwriting existing data
-    companies = load_companies("companies.json")
-    initialize_csv(companies)
+        selected_articles = gpt_select_articles(articles, company)
 
-    # Fetch articles and filter them using GPT
-    print("\nFetching Articles...")
-    articles = fetch_articles()
-    selected_articles = gpt_filter_articles(articles)
-    print(f"\nGPT Selected Articles: {selected_articles}")
+        if not selected_articles:
+            print(f"❌ No relevant article selected for {company}. Skipping...")
+            continue
 
-    # Analyze the selected articles and summarize them
-    print("\nAnalyzing selected articles...")
-    gpt_results = {}
-    for article in selected_articles:
-        article_text = get_article_text("https://www.cnbc.com/world/?region=world")  # Replace with actual URLs if possible
-        summary = summarize_and_identify_companies(article_text, companies)
+        company_sentiments = []
         
-        # Parse GPT output for company mentions
-        for company in companies:
-            if company in summary:
-                sentiment = "Good" if "Good" in summary else "Bad" if "Bad" in summary else "Neutral"
-                gpt_results[company] = sentiment
+        for title, url in selected_articles:
+            print(f"   - Analyzing: {title}")
+            article_text = get_article_text(url)
+            if not article_text:
+                print("     ❌ Could not fetch article text. Skipping...")
+                continue
 
-    #   Update only the "GPT Standalone" column while keeping all other columns intact
-    update_csv_with_gpt_standalone(gpt_results)
-    print("\n  Pipeline completed successfully! 'GPT Standalone' column updated while preserving other data.")
+            summary = gpt_summarize_article(article_text, company)
+            sentiment = "Good" if "Good" in summary else "Bad" if "Bad" in summary else "Neutral"
+            results.append([ticker, company, title, url, sentiment, summary])
+            company_sentiments.append(sentiment)
+
+        # Store overall sentiment for the company
+        sentiment_aggregate[company] = company_sentiments
+        time.sleep(2)  # Avoid hitting API limits
+
+    # Save article sentiment results to CSV
+    df = pd.DataFrame(results, columns=["Ticker", "Company", "Title", "URL", "Sentiment", "Summary"])
+    df.to_csv("company_sentiment_analysis.csv", index=False)
+    print("\n✅ Sentiment analysis completed! Results saved to company_sentiment_analysis.csv")
+
+    # Create and save summary CSV
+    create_summary_csv(sentiment_aggregate)
+
+# Function to create a summary CSV with overall sentiment per company
+
+def create_summary_csv(sentiment_aggregate):
+    summary_data = []
+    
+    for company, sentiments in sentiment_aggregate.items():
+        if sentiments:
+            avg_sentiment = sentiments.count("Good") - sentiments.count("Bad")
+            overall_sentiment = "Good" if avg_sentiment > 0 else "Bad" if avg_sentiment < 0 else "Neutral"
+        else:
+            overall_sentiment = "No Data"
+
+        summary_data.append([company, overall_sentiment, len(sentiments)])
+    
+    summary_df = pd.DataFrame(summary_data, columns=["Company", "Overall Sentiment", "Number of Articles"])
+    summary_df.to_csv("company_sentiment_summary.csv", index=False)
+    print("\n✅ Summary CSV created: company_sentiment_summary.csv")
+
+# Run the analysis
+gpt_sentiment_analysis()

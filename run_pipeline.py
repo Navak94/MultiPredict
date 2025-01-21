@@ -6,6 +6,7 @@ def run_pipeline():
     tensorflow_nn_script = "neural_nets_tensorflow.py"
     sentiment_analysis_script = "language_model_sentiment_analysis.py"
     language_model_standalone = "language_model_standalone.py"
+    sentiment_analysis_standalone = "sentiment_analysis_search_articles_from_txt.py"
     format_csv = "organize_info.py"
     try:
 
@@ -28,6 +29,13 @@ def run_pipeline():
         print("Running tensorflow_nn Model...")
         subprocess.run(["python", tensorflow_nn_script], check=True)
         print("tensorflow_nn completed successfully.\n")
+
+        
+        # Step 5: Run the tensorflow_nn Model
+        print("standalone sentiment analysis...")
+        subprocess.run(["python", sentiment_analysis_standalone], check=True)
+        print("standalone sentiment analysis complete!\n")
+
 
         # Step 5: Run the tensorflow_nn Model
         print("formatting the info...")
