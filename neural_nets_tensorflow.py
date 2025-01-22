@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
 import datetime
@@ -10,6 +9,9 @@ import json
 import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
+import matplotlib
+matplotlib.use('Agg')  # Use a non-interactive backend
+import matplotlib.pyplot as plt
 
 # Initialize CSV file with headers (if it doesn't exist)
 def initialize_csv(filename="lstm_stock_trends.csv"):

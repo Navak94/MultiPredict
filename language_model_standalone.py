@@ -12,7 +12,6 @@ load_dotenv(dotenv_path="API_key.env")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Load company names
-
 def load_companies(file_path="companies_names.txt"):
     companies = {}
     with open(file_path, "r", encoding="utf-8") as file:
@@ -23,7 +22,6 @@ def load_companies(file_path="companies_names.txt"):
     return companies
 
 # Search Google News for stock articles
-
 def search_news(company_name):
     search_url = f"https://www.google.com/search?q={company_name.replace(' ', '+')}+stock+news&tbm=nws"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -45,7 +43,6 @@ def search_news(company_name):
     return articles[:15]  # Fetch up to 15 articles per company
 
 # GPT picks the best articles
-
 def gpt_select_articles(articles, company):
     titles = [title for title, _ in articles]
     prompt = f"""
@@ -62,7 +59,6 @@ def gpt_select_articles(articles, company):
     return [article for article in articles if article[0] in selected_titles]
 
 # Fetch article content
-
 def get_article_text(url):
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
@@ -75,7 +71,6 @@ def get_article_text(url):
         return ""
 
 # GPT summarizes the articles and assigns sentiment
-
 def gpt_summarize_article(article_text, company):
     prompt = f"""
     Summarize this article and classify its impact on {company}'s stock as Good, Neutral, or Bad.
@@ -89,24 +84,25 @@ def gpt_summarize_article(article_text, company):
     return response["choices"][0]["text"].strip()
 
 # Main function to run GPT-based sentiment analysis
-
 def gpt_sentiment_analysis():
     companies = load_companies("companies_names.txt")
     results = []
-    sentiment_aggregate = {}
+    sentiment_aggregate = {company: [] for company in companies.values()}  # Ensure all companies are included
 
     for ticker, company in companies.items():
         print(f"🔍 Searching news for {company} ({ticker})...")
         articles = search_news(company)
 
         if not articles:
-            print(f"❌ No news found for {company}. Skipping...")
+            print(f"❌ No news found for {company}. Recording as 'No Data'...")
+            sentiment_aggregate[company] = []
             continue
 
         selected_articles = gpt_select_articles(articles, company)
 
         if not selected_articles:
-            print(f"❌ No relevant article selected for {company}. Skipping...")
+            print(f"❌ No relevant article selected for {company}. Recording as 'No Data'...")
+            sentiment_aggregate[company] = []
             continue
 
         company_sentiments = []
@@ -129,29 +125,34 @@ def gpt_sentiment_analysis():
 
     # Save article sentiment results to CSV
     df = pd.DataFrame(results, columns=["Ticker", "Company", "Title", "URL", "Sentiment", "Summary"])
-    df.to_csv("company_sentiment_analysis.csv", index=False)
-    print("\n✅ Sentiment analysis completed! Results saved to company_sentiment_analysis.csv")
+    df.to_csv("GPT_standalonecompany_sentiment_analysis.csv", index=False)
+    print("\n✅ Sentiment analysis completed! Results saved to GPT_standalonecompany_sentiment_analysis.csv")
 
     # Create and save summary CSV
-    create_summary_csv(sentiment_aggregate)
+    create_summary_csv(sentiment_aggregate, companies)
 
 # Function to create a summary CSV with overall sentiment per company
-
-def create_summary_csv(sentiment_aggregate):
+def create_summary_csv(sentiment_aggregate, companies):
     summary_data = []
     
-    for company, sentiments in sentiment_aggregate.items():
+    for ticker, company in companies.items():
+        sentiments = sentiment_aggregate.get(company, [])
+        num_articles = len(sentiments)
+        num_good = sentiments.count("Good")
+        num_neutral = sentiments.count("Neutral")
+        num_bad = sentiments.count("Bad")
+        
         if sentiments:
-            avg_sentiment = sentiments.count("Good") - sentiments.count("Bad")
+            avg_sentiment = num_good - num_bad
             overall_sentiment = "Good" if avg_sentiment > 0 else "Bad" if avg_sentiment < 0 else "Neutral"
         else:
             overall_sentiment = "No Data"
 
-        summary_data.append([company, overall_sentiment, len(sentiments)])
+        summary_data.append([ticker, company, overall_sentiment, num_articles, num_good, num_neutral, num_bad])
     
-    summary_df = pd.DataFrame(summary_data, columns=["Company", "Overall Sentiment", "Number of Articles"])
-    summary_df.to_csv("company_sentiment_summary.csv", index=False)
-    print("\n✅ Summary CSV created: company_sentiment_summary.csv")
+    summary_df = pd.DataFrame(summary_data, columns=["Ticker", "Company", "Overall Sentiment", "Number of Articles", "Good", "Neutral", "Bad"])
+    summary_df.to_csv("GPT_standalone_company_sentiment_summary.csv", index=False)
+    print("\n✅ Summary CSV created: GPT_standalonecompany_sentiment_summary.csv")
 
 # Run the analysis
 gpt_sentiment_analysis()
