@@ -63,9 +63,9 @@ def get_article_text(url):
 def classify_sentiment(score):
     if score is None:
         return "No Data"
-    elif score > 0.2:
+    elif score > 0.1:
         return "Good"
-    elif score < -0.2:
+    elif score < 0:
         return "Bad"
     else:
         return "Neutral"
@@ -107,7 +107,7 @@ def sentiment_analysis():
 
     # Save article sentiment results to CSV
     df = pd.DataFrame(results, columns=["Ticker", "Company", "Title", "URL", "Sentiment", "Score"])
-    df.to_csv("company_sentiment_analysis.csv", index=False)
+    df.to_csv("SOLO_ONLY_SENTIMENT_company_sentiment_analysis.csv", index=False)
     print("\n✅ Sentiment analysis completed! Results saved to company_sentiment_analysis.csv")
 
     # Create and save the summary CSV with averages & medians
@@ -132,7 +132,7 @@ def create_summary_csv(sentiment_scores):
         summary_data.append([company, avg_sentiment, avg_label, median_sentiment, median_label])
 
     summary_df = pd.DataFrame(summary_data, columns=["Company", "Average Sentiment Score", "Average Sentiment Label", "Median Sentiment Score", "Median Sentiment Label"])
-    summary_df.to_csv("company_sentiment_summary.csv", index=False)
+    summary_df.to_csv("SOLO_ONLY_SENTIMENT_company_sentiment_summary.csv", index=False)
     print("\n✅ Summary CSV created: company_sentiment_summary.csv")
 
 # Run the analysis

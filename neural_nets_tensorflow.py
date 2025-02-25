@@ -8,12 +8,17 @@ import csv
 import json
 import tensorflow as tf
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Masking
 import matplotlib
 matplotlib.use('Agg')  # Use a non-interactive backend
 import matplotlib.pyplot as plt
 
-# Initialize CSV file with headers (if it doesn't exist)
+# Define how many years of historical data to fetch
+HISTORICAL_YEARS = 10  # Try to get up to 10 years of data
+SEQUENCE_LENGTH = 30  # Past days used for prediction
+MIN_REQUIRED_DAYS = 500  # Minimum data points required (2 years of daily data)
+
+# Initialize CSV file with headers
 def initialize_csv(filename="lstm_stock_trends.csv"):
     if not os.path.exists(filename):
         with open(filename, mode="w", newline="") as file:
@@ -21,32 +26,34 @@ def initialize_csv(filename="lstm_stock_trends.csv"):
             writer.writerow(["Company", "Today Value", "Predicted Value", "Trend"])
         print(f"\n✅ CSV initialized: {filename}")
 
-# Function to append results to CSV
+# Append prediction results to CSV
 def append_to_csv(Company, today_val, predicted_val, trend_val, filename="lstm_stock_trends.csv"):
     with open(filename, mode="a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow([Company, today_val, predicted_val, trend_val])
     print(f"✅ Appended {Company} data to {filename}")
 
-# Load the stock list from the config file
+# Load stock list from config
 def load_config_json(path="companies.json"):
     with open(path, 'r') as file:
         config = json.load(file)
     return config['companies']
 
-# Create the LSTM model
+# Create the LSTM model with regularization
 def create_lstm_model():
     model = Sequential([
-        LSTM(128, return_sequences=True, input_shape=(30, 1)),
-        Dropout(0.2),
-        LSTM(64),
-        Dropout(0.2),
+        Masking(mask_value=0.0, input_shape=(SEQUENCE_LENGTH, 1)),  # Handle variable-length sequences
+        LSTM(256, return_sequences=True, kernel_regularizer=tf.keras.regularizers.l2(0.001)),
+        Dropout(0.3),
+        LSTM(128),
+        Dropout(0.3),
         Dense(1)  # Single neuron for regression output
     ])
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
     return model
 
-# Function to create sequences for LSTM training
+
+# Create sequences for LSTM
 def create_sequences(data, sequence_length=30):
     sequences, labels = [], []
     for i in range(len(data) - sequence_length):
@@ -56,39 +63,48 @@ def create_sequences(data, sequence_length=30):
         labels.append(label)
     return np.array(sequences), np.array(labels)
 
-# Prepare data and train the model
-companies = load_config_json()
-sequence_length = 30
-training_days = 120
+# Fetch and process stock data
+def fetch_stock_data(company):
+    end_date = datetime.datetime.now()
+    start_date = end_date - datetime.timedelta(days=HISTORICAL_YEARS * 365)
 
-# Initialize the CSV before running
-initialize_csv()
+    # Download stock data
+    data = yf.download(company, start=start_date, end=end_date)
 
-for Company in companies:
+    if data.empty or len(data) < MIN_REQUIRED_DAYS:
+        raise ValueError(f"Not enough data for {company}")
+
+    # Extract closing prices
+    df = data['Close'].values.reshape(-1, 1)
+
+    # Normalize data
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    df_normalized = scaler.fit_transform(df)
+
+    return df_normalized, scaler, data.index
+
+# Train and predict
+def train_and_predict(company):
     try:
         # Fetch stock data
-        data = yf.download(Company, start=(datetime.datetime.now() - datetime.timedelta(days=training_days)), end=datetime.datetime.now())
-        df = data['Close'].values.reshape(-1, 1)
-
-        # Normalize data
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        df_normalized = scaler.fit_transform(df)
+        df_normalized, scaler, dates = fetch_stock_data(company)
 
         # Create sequences
-        X, y = create_sequences(df_normalized, sequence_length)
+        X, y = create_sequences(df_normalized, SEQUENCE_LENGTH)
         X = X.reshape((X.shape[0], X.shape[1], 1))  # Reshape for LSTM
 
-        # Split data into training and testing sets
+        # Split into training and testing sets
         train_size = int(len(X) * 0.8)
         X_train, X_test = X[:train_size], X[train_size:]
         y_train, y_test = y[:train_size], y[train_size:]
 
-        # Initialize and train the LSTM model
+        # Train model
         model = create_lstm_model()
-        model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=1)
+        model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=1, 
+                  callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)])
 
-        # Forecasting the next 30 days
-        last_sequence = X[-1].reshape(1, sequence_length, 1)
+        # Forecast the next 30 days
+        last_sequence = X[-1].reshape(1, SEQUENCE_LENGTH, 1)
         future_predictions = []
 
         for _ in range(30):
@@ -101,28 +117,40 @@ for Company in companies:
         future_predictions_rescaled = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
         last_120_days = scaler.inverse_transform(df_normalized[-120:])
 
-        # Determine the trend based on the predicted values
+        # Determine trend
         today_value = last_120_days[-1][0]
         predicted_value = future_predictions_rescaled[-1][0]
         trend_val = "Very High Upward Trend" if predicted_value > today_value * 1.2 else "Upward Trend" if predicted_value > today_value else "Downward Trend"
 
-        # Append the results to the CSV
-        append_to_csv(Company, today_value, predicted_value, trend_val)
+        # Append results
+        append_to_csv(company, today_value, predicted_value, trend_val)
 
-        # Plot the results
+        # Plot results
         plt.figure(figsize=(12, 6))
-        plt.plot(data.index[-120:], last_120_days, label='Last 120 Days')
-        plt.plot(data.index[-1] + pd.to_timedelta(np.arange(1, 31), unit='D'), 
+        plt.plot(dates[-120:], last_120_days, label='Last 120 Days')
+        plt.plot(dates[-1] + pd.to_timedelta(np.arange(1, 31), unit='D'), 
                  future_predictions_rescaled, label='LSTM Predictions', color='orange')
-        plt.title(f'{Company} Stock Price Prediction with TensorFlow LSTM')
+        plt.title(f'{company} Stock Price Prediction')
         plt.xlabel('Date')
         plt.ylabel('Close Price (USD)')
         plt.legend()
-        plt.savefig(f'stock_predictions/{Company}/{Company}_lstm_tensorflow_prediction.png', dpi=300)
+
+        output_dir = f'stock_predictions/{company}/'
+        os.makedirs(output_dir, exist_ok=True)
+        plt.savefig(f'{output_dir}{company}_lstm_tensorflow_prediction.png', dpi=300)
         plt.close()
 
-        print(f"✅ Completed LSTM prediction for {Company}")
-    except Exception as e:
-        print(f"❌ Error processing {Company}: {e}")
+        print(f"✅ Completed LSTM prediction for {company}")
 
-print("✅ LSTM Stock Prediction Completed")
+    except Exception as e:
+        print(f"❌ Error processing {company}: {e}")
+
+# Main execution
+if __name__ == "__main__":
+    initialize_csv()
+    companies = load_config_json()
+
+    for company in companies:
+        train_and_predict(company)
+
+    print("✅ LSTM Stock Prediction Completed")

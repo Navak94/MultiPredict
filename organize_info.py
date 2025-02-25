@@ -4,7 +4,7 @@ import pandas as pd
 stock_analysis_file = "stock_analysis.csv"
 linear_regression_file = "stock_analysis_linear_regression.csv"
 lstm_trends_file = "lstm_stock_trends.csv"
-gpt_sentiment_file = "company_sentiment_summary.csv"  # New file for GPT sentiment
+gpt_sentiment_file = "GPT_standalone_company_sentiment_summary.csv"  # New file for GPT sentiment
 
 # Load the main stock analysis CSV
 stock_df = pd.read_csv(stock_analysis_file)
