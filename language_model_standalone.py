@@ -4,12 +4,18 @@ import pandas as pd
 import time
 import json
 from bs4 import BeautifulSoup
-
-# Load environment variables
+from newspaper import Article
+from datetime import datetime, timedelta
+from dateutil import parser
 from dotenv import load_dotenv
 import os
+
+# Load environment variables
 load_dotenv(dotenv_path="API_key.env")
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Define reputable sources
+REPUTABLE_SOURCES = ["yahoo.com", "bloomberg.com", "cnbc.com", "reuters.com", "marketwatch.com"]
 
 # Load company names
 def load_companies(file_path="companies_names.txt"):
@@ -21,28 +27,73 @@ def load_companies(file_path="companies_names.txt"):
                 companies[ticker] = name
     return companies
 
-# Search Google News for stock articles
+# Parse Google News dates
+def parse_google_news_date(date_text):
+    try:
+        return parser.parse(date_text)
+    except:
+        return None
+
+# Search Google News for stock articles within the last 14 days
 def search_news(company_name):
-    search_url = f"https://www.google.com/search?q={company_name.replace(' ', '+')}+stock+news&tbm=nws"
+    end_date = datetime.today().strftime("%m/%d/%Y")  # Today's date
+    start_date = (datetime.today() - timedelta(days=14)).strftime("%m/%d/%Y")  # 14 days ago
+
+    search_url = (
+        f"https://www.google.com/search?q={company_name.replace(' ', '+')}+stock+news&tbm=nws"
+        f"&tbs=cdr:1,cd_min:{start_date},cd_max:{end_date}"  # Custom Date Range
+    )
+    
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(search_url, headers=headers)
-
+    
     if response.status_code != 200:
         return []
 
     soup = BeautifulSoup(response.text, "html.parser")
     articles = []
 
-    for item in soup.find_all("div", class_="BNeawe vvjwJb AP7Wnd"):
-        title = item.get_text()
-        link = item.find_parent("a")["href"]
-        if link.startswith("/url?q="):
-            link = link[7:].split("&")[0]  # Extract clean URL
-        articles.append((title, link))
+    for result in soup.find_all("div", class_="BNeawe vvjwJb AP7Wnd"):
+        title = result.get_text()
+        parent = result.find_parent("a")
+        if parent and "href" in parent.attrs:
+            link = parent["href"]
+            if link.startswith("/url?q="):
+                link = link[7:].split("&")[0]  # Extract clean URL
+            articles.append((title, link))
 
-    return articles[:15]  # Fetch up to 15 articles per company
+    return filter_reputable_sources(articles[:15])
 
-# GPT picks the best articles
+# Filter only reputable sources
+def filter_reputable_sources(articles):
+    return [(title, link) for title, link in articles if any(source in link for source in REPUTABLE_SOURCES)]
+
+# Robust OpenAI call with retry logic
+def robust_openai_call(prompt, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = openai.Completion.create(
+                model="gpt-3.5-turbo-instruct",
+                prompt=prompt,
+                max_tokens=300
+            )
+            return response["choices"][0]["text"].strip()
+        except openai.error.OpenAIError as e:
+            print(f"⚠️ OpenAI API error: {e}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+    return "Error: Failed to generate response"
+
+# Fetch article content using newspaper3k
+def get_article_text(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        return article.text[:5000]  # Limit to 5000 characters
+    except:
+        return ""
+
+# GPT selects the best articles
 def gpt_select_articles(articles, company):
     titles = [title for title, _ in articles]
     prompt = f"""
@@ -50,44 +101,46 @@ def gpt_select_articles(articles, company):
     {chr(10).join(titles)}
     Respond with just the selected titles, one per line.
     """
-    response = openai.Completion.create(
-        model="gpt-3.5-turbo-instruct",
-        prompt=prompt,
-        max_tokens=300
-    )
-    selected_titles = response["choices"][0]["text"].strip().split("\n")
+    response_text = robust_openai_call(prompt)
+    selected_titles = response_text.split("\n")
     return [article for article in articles if article[0] in selected_titles]
 
-# Fetch article content
-def get_article_text(url):
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        soup = BeautifulSoup(response.text, "html.parser")
-        paragraphs = soup.find_all("p")
-        text = " ".join([p.get_text() for p in paragraphs])
-        return text[:5000]  # Limit to 5000 characters
-    except:
-        return ""
-
-# GPT summarizes the articles and assigns sentiment
+# GPT summarizes articles
 def gpt_summarize_article(article_text, company):
     prompt = f"""
     Summarize this article and classify its impact on {company}'s stock as Good, Neutral, or Bad.
     {article_text}
     """
-    response = openai.Completion.create(
-        model="gpt-3.5-turbo-instruct",
-        prompt=prompt,
-        max_tokens=300
-    )
-    return response["choices"][0]["text"].strip()
+    return robust_openai_call(prompt)
+
+# Function to create a summary CSV with overall sentiment per company
+def create_summary_csv(sentiment_aggregate, companies):
+    summary_data = []
+    
+    for ticker, company in companies.items():
+        sentiments = sentiment_aggregate.get(company, [])
+        num_articles = len(sentiments)
+        num_good = sentiments.count("Good")
+        num_neutral = sentiments.count("Neutral")
+        num_bad = sentiments.count("Bad")
+        
+        if sentiments:
+            avg_sentiment = num_good - num_bad
+            overall_sentiment = "Good" if avg_sentiment > 0 else "Bad" if avg_sentiment < 0 else "Neutral"
+        else:
+            overall_sentiment = "No Data"
+
+        summary_data.append([ticker, company, overall_sentiment, num_articles, num_good, num_neutral, num_bad])
+    
+    summary_df = pd.DataFrame(summary_data, columns=["Ticker", "Company", "Overall Sentiment", "Number of Articles", "Good", "Neutral", "Bad"])
+    summary_df.to_csv("GPT_standalone_company_sentiment_summary.csv", index=False)
+    print("\n✅ Summary CSV created: GPT_standalonecompany_sentiment_summary.csv")
 
 # Main function to run GPT-based sentiment analysis
 def gpt_sentiment_analysis():
     companies = load_companies("companies_names.txt")
     results = []
-    sentiment_aggregate = {company: [] for company in companies.values()}  # Ensure all companies are included
+    sentiment_aggregate = {company: [] for company in companies.values()}
 
     for ticker, company in companies.items():
         print(f"🔍 Searching news for {company} ({ticker})...")
@@ -119,40 +172,14 @@ def gpt_sentiment_analysis():
             results.append([ticker, company, title, url, sentiment, summary])
             company_sentiments.append(sentiment)
 
-        # Store overall sentiment for the company
         sentiment_aggregate[company] = company_sentiments
         time.sleep(2)  # Avoid hitting API limits
 
-    # Save article sentiment results to CSV
     df = pd.DataFrame(results, columns=["Ticker", "Company", "Title", "URL", "Sentiment", "Summary"])
     df.to_csv("GPT_standalonecompany_sentiment_analysis.csv", index=False)
     print("\n✅ Sentiment analysis completed! Results saved to GPT_standalonecompany_sentiment_analysis.csv")
 
-    # Create and save summary CSV
     create_summary_csv(sentiment_aggregate, companies)
-
-# Function to create a summary CSV with overall sentiment per company
-def create_summary_csv(sentiment_aggregate, companies):
-    summary_data = []
-    
-    for ticker, company in companies.items():
-        sentiments = sentiment_aggregate.get(company, [])
-        num_articles = len(sentiments)
-        num_good = sentiments.count("Good")
-        num_neutral = sentiments.count("Neutral")
-        num_bad = sentiments.count("Bad")
-        
-        if sentiments:
-            avg_sentiment = num_good - num_bad
-            overall_sentiment = "Good" if avg_sentiment > 0 else "Bad" if avg_sentiment < 0 else "Neutral"
-        else:
-            overall_sentiment = "No Data"
-
-        summary_data.append([ticker, company, overall_sentiment, num_articles, num_good, num_neutral, num_bad])
-    
-    summary_df = pd.DataFrame(summary_data, columns=["Ticker", "Company", "Overall Sentiment", "Number of Articles", "Good", "Neutral", "Bad"])
-    summary_df.to_csv("GPT_standalone_company_sentiment_summary.csv", index=False)
-    print("\n✅ Summary CSV created: GPT_standalonecompany_sentiment_summary.csv")
 
 # Run the analysis
 gpt_sentiment_analysis()
